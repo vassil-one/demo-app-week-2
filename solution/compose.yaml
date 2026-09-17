@@ -1,0 +1,36 @@
+# compose.yaml — demo-app + Redis. End-of-Week-2 state.
+#
+#   docker compose up -d --build     build + start, wired on one network
+#   docker compose ps                state + health of each service
+#   docker compose down              stop + remove; named volume KEPT
+#   docker compose down -v           ...and delete the named volume too
+#
+# Variables like ${APP_PORT:-8000} are read from a .env file next to this file
+# (copy .env.example) or from your shell; the part after :- is the default.
+
+services:
+  app:
+    build: .                        # Dockerfile in this directory
+    image: demo:v1                  # tag the built image (same name as W1)
+    ports:
+      - "${APP_PORT:-8000}:8000"    # host:container — for the OUTSIDE only
+    environment:
+      APP_VERSION: v1
+      REDIS_HOST: ${REDIS_HOST:-redis}   # the service name IS the hostname
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      redis:
+        condition: service_healthy  # wait for HEALTHY, not just started
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:                    # this is what service_healthy waits for
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data            # Redis writes its snapshots under /data
+
+volumes:
+  redis-data:                       # named volume — survives `down`, not `down -v`

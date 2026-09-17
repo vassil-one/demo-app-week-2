@@ -1,0 +1,37 @@
+# k8s/deployment.yaml — the app. End-of-Week-2 state (1 replica, no probes yet).
+#
+#   k3d image import demo:v1 -c cos      # the cluster can't see local Docker images
+#   kubectl apply -f k8s/deployment.yaml
+#   kubectl get pods -w
+#   kubectl scale deployment demo --replicas=2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+  labels:
+    app: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo                 # MUST match template.metadata.labels below
+  template:
+    metadata:
+      labels:
+        app: demo               # every Pod is born with this label
+    spec:
+      containers:
+        - name: demo
+          image: demo:v1
+          # IfNotPresent: use the image k3d imported instead of trying a registry.
+          # (Pulling "demo:v1" from Docker Hub would give ImagePullBackOff.)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_VERSION
+              value: "v1"
+            - name: REDIS_HOST
+              value: "redis"      # the Service name from k8s/redis.yaml — cluster DNS
+            - name: REDIS_PORT
+              value: "6379"
